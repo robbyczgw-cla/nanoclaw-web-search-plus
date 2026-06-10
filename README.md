@@ -54,9 +54,9 @@ Copy this repo's contents into `.claude/skills/add-web-search-plus/` in your Nan
 ## Usage
 
 ```bash
-wsp search -q "anthropic claude opus pricing"
-wsp search -q "graz hifi events" --explain-routing
-wsp extract --url https://example.com/article
+wsp search "anthropic claude opus pricing"
+wsp explain "graz hifi events"
+wsp extract https://example.com/article
 wsp doctor
 ```
 
