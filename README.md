@@ -1,16 +1,14 @@
 # nanoclaw-web-search-plus 🔍
 
-**Multi-provider web search + extraction for [NanoClaw](https://github.com/nanocoai/nanoclaw) agents — search and extract only, no LLM synthesis.**
+**Multi-provider web search + extraction for [NanoClaw](https://github.com/nanocoai/nanoclaw) agents — search and extract only, no LLM synthesis, no MCP.**
 
-This is the **NanoClaw front-end** of [Web Search Plus](https://github.com/robbyczgw-cla/hermes-web-search-plus). It packages the Web Search Plus engine as a NanoClaw **container skill**: the agent runs real web searches at runtime through its own container via a thin `wsp` CLI — no MCP, no extra service.
+This repository is the **NanoClaw front-end** of [Web Search Plus](https://github.com/robbyczgw-cla/hermes-web-search-plus), packaged as a self-contained NanoClaw **utility skill**. The agent runs real web searches at runtime inside its own container via a thin `wsp` CLI — 13 providers, deterministic routing with fallback, clean JSON out.
 
-> Your agent searches the web through 13 providers with automatic fallback, deterministic routing, and clean JSON out — at provider cost, not LLM-tool cost.
+> Search the web through 13 providers at provider cost, not LLM-tool cost.
 
----
+## Why
 
-## Why this exists
-
-NanoClaw agents already have a built-in `WebSearch` tool, but it runs as a server-side LLM tool and is billed against your Agent-SDK credit pool. **Web Search Plus runs *outside* that pool** — it calls cheap or free search providers directly (self-hosted SearXNG is $0), so heavy search workloads don't burn your metered SDK budget. You also get provider control, a deterministic fallback chain, cooldown handling, and higher-quality extraction.
+NanoClaw's built-in `WebSearch` runs as a server-side LLM tool, billed against your Agent-SDK credit pool. Web Search Plus calls search providers directly, so it runs **outside that pool** (self-hosted SearXNG is $0), with provider control, cooldown handling, and higher-quality extraction.
 
 ## The Web Search Plus family
 
@@ -18,47 +16,42 @@ NanoClaw agents already have a built-in `WebSearch` tool, but it runs as a serve
 |---|---|
 | [`hermes-web-search-plus`](https://github.com/robbyczgw-cla/hermes-web-search-plus) | **The engine** (v2.4.0) — provider registry, routing, extraction. Source of truth. |
 | [`web-search-plus-mcp`](https://github.com/robbyczgw-cla/web-search-plus-mcp) | MCP-server front-end for MCP hosts (Claude Desktop, Cursor, …). |
-| **`nanoclaw-web-search-plus`** (this repo) | NanoClaw container-skill front-end. **No MCP** — runs via Bash inside the agent container. |
+| **`nanoclaw-web-search-plus`** (this repo) | NanoClaw utility-skill front-end. **No MCP** — runs via Bash inside the agent container. |
 
-The engine here is vendored byte-identical from `hermes-web-search-plus` **v2.4.0** (commit `373024c`). It is pure-Python **stdlib only** (no pip dependencies); HTTP goes through `urllib`.
+The engine here is vendored byte-identical from `hermes-web-search-plus` **v2.4.0** — pure Python **stdlib only** (no pip dependencies; HTTP via `urllib`).
 
----
+## This repo *is* the skill
 
-## What you get
+The layout mirrors a NanoClaw skill folder, conformant to the [skills model](https://github.com/nanocoai/nanoclaw/blob/main/docs/skills-model.md):
 
-- `wsp search -q "query"` — multi-provider search with automatic routing + fallback
-- `wsp search -q "..." --explain-routing` — see why a provider was chosen
-- `wsp extract --url <URL>` — clean content extraction
-- `wsp doctor` — provider configuration report
-- **13 providers:** Tavily, Linkup, Querit, Exa, Firecrawl, Perplexity (via Kilo), Brave, Serper, You.com, SearXNG, SerpBase (+ more) — configure as few or as many as you like; one key is enough to start.
+```
+SKILL.md                         # apply: copies the engine in, adds python3 to the Dockerfile, installs the test
+REMOVE.md                        # reverses every change
+resources/
+├── wsp-skill.test.ts            # integration-point test (the python3 Dockerfile dep)
+└── web-search-plus/             # what apply copies into container/skills/
+    ├── SKILL.md                 # agent-facing usage
+    ├── bin/wsp                  # the CLI wrapper
+    └── engine/                  # the vendored engine (12 .py + LICENSE)
+```
 
-Output is clean JSON (`provider`, `results`, `routing.chain_tried`, `provider_errors`, …). Agent guidance lives in `SKILL.md`.
-
----
+It is a **utility skill**: self-contained, and apply **copies files into place** — there is no branch and no `git merge`.
 
 ## Install
 
-### Option A — once merged into NanoClaw upstream (skills-as-branches)
+### Once merged into NanoClaw upstream
 
-```bash
+```
 /add-web-search-plus
 ```
 
-This merges the `skill/web-search-plus` branch and walks you through setup. (Tracking PR / branch: [`robbyczgw-cla/nanoclaw@skill/web-search-plus`](https://github.com/robbyczgw-cla/nanoclaw/tree/skill/web-search-plus).)
+Tracking PR: [nanocoai/nanoclaw#2725](https://github.com/nanocoai/nanoclaw/pull/2725).
 
-### Option B — manual install today (pre-merge)
+### Manual install today
 
-See **[INSTALL.md](./INSTALL.md)** for the full step-by-step. In short:
+Copy this repo's contents into `.claude/skills/add-web-search-plus/` in your NanoClaw install, then follow [SKILL.md](./SKILL.md): it copies the engine into `container/skills/web-search-plus/`, adds `python3` to `container/Dockerfile`, installs the integration test, and rebuilds the agent image. Provide one provider key (via the OneCLI gateway, or a per-group `.wsp.env`) and you're live. [REMOVE.md](./REMOVE.md) reverses all of it.
 
-1. Copy `web-search-plus/` (the `engine/`, `SKILL.md`, `bin/wsp`) into your deployment's `container/skills/web-search-plus/`.
-2. Add `python3` to the apt block in `container/Dockerfile`.
-3. Rebuild the agent image.
-4. Drop one provider key into `groups/<your-group>/.wsp.env`.
-5. `wsp doctor` → `wsp search -q "test"`.
-
----
-
-## Usage examples
+## Usage
 
 ```bash
 wsp search -q "anthropic claude opus pricing"
@@ -67,10 +60,8 @@ wsp extract --url https://example.com/article
 wsp doctor
 ```
 
-The agent is instructed (via `SKILL.md`) to prefer `wsp` over the built-in `WebSearch` for cost and quality, to parse the JSON rather than scrape it, and to read `routing.chain_tried` / `provider_errors` when a search underperforms.
-
----
+13 providers: Tavily, Linkup, Querit, Exa, Firecrawl, Perplexity (via Kilo), Brave, Serper, You.com, SearXNG, SerpBase, … — one key is enough to start. Output is clean JSON (`provider`, `results`, `routing.chain_tried`, `provider_errors`).
 
 ## Credits & License
 
-Engine © 2026 Robby and the Web Search Plus contributors, MIT — see [`engine/LICENSE`](./engine/LICENSE). This NanoClaw packaging is MIT-licensed (see [LICENSE](./LICENSE)). Built for the [NanoClaw](https://github.com/nanocoai/nanoclaw) runtime.
+Engine © 2026 Robby and the Web Search Plus contributors, MIT — see [`resources/web-search-plus/engine/LICENSE`](./resources/web-search-plus/engine/LICENSE). This packaging is MIT-licensed ([LICENSE](./LICENSE)). Built for the [NanoClaw](https://github.com/nanocoai/nanoclaw) runtime.

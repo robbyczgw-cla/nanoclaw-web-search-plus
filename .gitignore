@@ -1,9 +1,6 @@
-# runtime cache (never commit — holds live queries + result content)
 .wsp-cache/
 .cache/
-# provider keys
 .wsp.env
 *.env
-# python
 __pycache__/
 *.pyc
