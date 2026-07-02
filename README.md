@@ -14,11 +14,11 @@ NanoClaw's built-in `WebSearch` runs as a server-side LLM tool, billed against y
 
 | Package | Role |
 |---|---|
-| [`hermes-web-search-plus`](https://github.com/robbyczgw-cla/hermes-web-search-plus) | **The engine** (v2.4.0) — provider registry, routing, extraction. Source of truth. |
+| [`hermes-web-search-plus`](https://github.com/robbyczgw-cla/hermes-web-search-plus) | **The engine** (v2.8.1) — provider registry, routing, extraction. Source of truth. |
 | [`web-search-plus-mcp`](https://github.com/robbyczgw-cla/web-search-plus-mcp) | MCP-server front-end for MCP hosts (Claude Desktop, Cursor, …). |
 | **`nanoclaw-web-search-plus`** (this repo) | NanoClaw utility-skill front-end. **No MCP** — runs via Bash inside the agent container. |
 
-The engine here is vendored byte-identical from `hermes-web-search-plus` **v2.4.0** — pure Python **stdlib only** (no pip dependencies; HTTP via `urllib`).
+The engine here is vendored byte-identical from `hermes-web-search-plus` **v2.8.1** — pure Python **stdlib only** (no pip dependencies; HTTP via `urllib`).
 
 ## This repo *is* the skill
 
